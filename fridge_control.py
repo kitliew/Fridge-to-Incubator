@@ -3,6 +3,7 @@ import time
 import datetime
 import RPi.GPIO as GPIO
 import logging
+from db_control import Chamber
 
 ## raspberry pi setup
 GPIO.setmode(GPIO.BCM)
@@ -16,8 +17,8 @@ device_folder = glob.glob(base_dir + '28*')[0]
 device_file = device_folder + '/w1_slave'
 
 ## Other Parameter
-START_TIME = datetime.time(5,0,0)
-END_TIME = datetime.time(22,59,59)
+START_TIME = datetime.time(5, 0, 0)
+END_TIME = datetime.time(22, 59, 59)
 DAY_TEMP_HIGH = 26
 DAY_TEMP_LOW = 25.5
 NIGHT_TEMP_LOW = 17.3
@@ -32,13 +33,17 @@ def time_in_range(start, end, current):
 	"""Return whether current is in range [start, end]"""
 	return start <= current <= end
 
+
 def read_temp_raw():
+	"""Read w1 ds18b20 sensor file"""
 	f = open(device_file, 'r')
 	lines = f.readlines()
 	f.close()
 	return lines
 
+
 def read_temp():
+	"""Check if sensor file exist, get readings"""
 	lines = read_temp_raw()
 	while lines[0].strip()[-3:] != 'YES':
 		time.sleep(0.2)
@@ -50,19 +55,28 @@ def read_temp():
 	logging.info(f"Current temperature: {temp_c}")
 	return temp_c
 
-def relay_switch_on():
-	GPIO.output(TEMP_GPIO, GPIO.HIGH)
-	logging.info("Relay ON")
 
-def relay_switch_off():
-	GPIO.output(TEMP_GPIO, GPIO.LOW)
-	logging.info("Relay OFF")
+def relay_temp_switch(on_off):
+	"""Control relay switch"""
+	if on_off == "ON":
+		GPIO.output(TEMP_GPIO, GPIO.HIGH)
+		logging.info("Compressor ON")
+		return 1
+	else:
+		GPIO.output(TEMP_GPIO, GPIO.LOW)
+		logging.info("Compressor OFF")
+		return 0
+
 
 ## Run the script
 logging.debug("Start script.")
 
+
 # init connection to sensor
 max_try = 0
+# temperature relay switch status
+compressor_switch = 0
+light_switch = 0
 
 try:
 
@@ -91,21 +105,29 @@ try:
 
 		time.sleep(60)
 
-		if time_in_range(START_TIME,END_TIME,current_time):
+		if time_in_range(START_TIME, END_TIME, current_time):
 			print("DAYTIME")
 			logging.info("DAYTIME")
 			if current_temp > DAY_TEMP_HIGH:
-				relay_switch_on()
+				compressor_switch = relay_temp_switch("ON")
 			if current_temp <= DAY_TEMP_LOW:
-				relay_switch_off()
+				compressor_switch = relay_temp_switch("OFF")
 
 		else:
 			print("NIGHTTIME")
 			logging.info("NIGHTTIME")
 			if current_temp > NIGHT_TEMP_HIGH:
-				relay_switch_on()
+				compressor_switch = relay_temp_switch("ON")
 			if current_temp <= NIGHT_TEMP_LOW:
-				relay_switch_off()
+				compressor_switch = relay_temp_switch("OFF")
+
+		# Readings to be saved in SQL database
+		readings = ("SmallFridge", time.strftime('%Y-%m-%d %H:%M:%S'), current_temp, light_switch, compressor_switch)
+
+		# Output tuple(Device, DateTime, EC, Humidity, pH, Temperature)
+		record = Chamber("GerminationFridge")
+
+		record.insert_reading_values(readings)
 
 except Exception as e:
 	print(e)
@@ -114,6 +136,6 @@ except Exception as e:
 
 finally:
 	GPIO.output(TEMP_GPIO, GPIO.LOW)
-	logging.error("INTERUPTED. SWITCH OFF RELAY NOW!")
+	logging.error("INTERRUPTED. SWITCH OFF RELAY NOW!")
 	GPIO.cleanup()
 	logging.debug("Cleanup GPIO complete.")
