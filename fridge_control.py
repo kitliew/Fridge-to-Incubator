@@ -103,8 +103,6 @@ try:
 
 			continue
 
-		time.sleep(60)
-
 		if time_in_range(START_TIME, END_TIME, current_time):
 			print("DAYTIME")
 			logging.info("DAYTIME")
@@ -128,6 +126,8 @@ try:
 		record = Chamber("GerminationFridge")
 
 		record.insert_reading_values(readings)
+
+		time.sleep(60)
 
 except Exception as e:
 	print(e)

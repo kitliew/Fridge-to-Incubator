@@ -22,9 +22,9 @@ class Chamber(object):
     mydb = mysql.connector.connect(
         host=host,  # IP address hosting the MySQL
         user=user,  # MySQL username
-        password=password,  # MySQL pass
-        database=database
+        password=password  # MySQL pass
     )
+    print("connect complete")
 
 
     def __init__(self, device):
@@ -33,6 +33,13 @@ class Chamber(object):
 
         # creating a cursor object using the cursor() method
         mycursor = self.mydb.cursor()
+
+        print("before database")
+        # create_database if not exist
+        mycursor.execute("CREATE DATABASE IF NOT EXISTS {}".format(self.database))
+        print("Created database")
+
+        mycursor.execute("USE {}".format(self.database))
 
         # preparing SQL query to CREATE TABLE into the database.
         sql = """CREATE TABLE IF NOT EXISTS `{}` (
