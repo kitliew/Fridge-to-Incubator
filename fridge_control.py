@@ -5,24 +5,37 @@ import RPi.GPIO as GPIO
 import logging
 from db_control import Chamber
 
-## raspberry pi setup
+## Parameter change by users
+# day time
+START_TIME = datetime.time(5, 0, 0)
+# night time
+END_TIME = datetime.time(22, 59, 59)
+# day time temperature highest
+DAY_TEMP_HIGH = 26
+# day time temperature lowest
+DAY_TEMP_LOW = 25.5
+# night time temperature highest
+NIGHT_TEMP_HIGH = 17.5
+# night time temperature lowest
+NIGHT_TEMP_LOW = 17.3
+
+
+## default raspberry pi setup
 GPIO.setmode(GPIO.BCM)
+# GPIO for relay switch
 TEMP_GPIO = 21
 GPIO.setup(TEMP_GPIO, GPIO.OUT)
+# GPIO initial state is off
 GPIO_STATE = 0
 
-## temperature reading directory
-base_dir = '/sys/bus/w1/devices/'
-device_folder = glob.glob(base_dir + '28*')[0]
-device_file = device_folder + '/w1_slave'
 
-## Other Parameter
-START_TIME = datetime.time(5, 0, 0)
-END_TIME = datetime.time(22, 59, 59)
-DAY_TEMP_HIGH = 26
-DAY_TEMP_LOW = 25.5
-NIGHT_TEMP_LOW = 17.3
-NIGHT_TEMP_HIGH = 17.5
+## temperature reading directory
+# note that by default, GPIO4 is w1 connection
+base_dir = '/sys/bus/w1/devices/'
+# ds18b20 w1 directory always starts with 28_xxxxxx
+device_folder = glob.glob(base_dir + '28*')[0]
+# w1_slave file containing raw acsii reading
+device_file = device_folder + '/w1_slave'
 
 ## logging info
 logging.basicConfig(filename='/home/pi/Fridge/fridge.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
@@ -30,7 +43,7 @@ logging.basicConfig(filename='/home/pi/Fridge/fridge.log', level=logging.DEBUG, 
 
 
 def time_in_range(start, end, current):
-	"""Return whether current is in range [start, end]"""
+	"""Return whether current time is in range [start, end]"""
 	return start <= current <= end
 
 
