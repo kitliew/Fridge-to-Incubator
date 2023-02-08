@@ -9,7 +9,7 @@
 import mysql.connector
 import logging
 
-logging.basicConfig(filename='/home/pi/Fridge/fridge.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.basicConfig(filename='/home/pi/Fridge-to-Incubator/fridge.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s:%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 class Chamber(object):
     # global variable
